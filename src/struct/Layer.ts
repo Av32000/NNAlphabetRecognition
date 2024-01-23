@@ -1,7 +1,10 @@
+import { ActivationFunction } from "./NeuralNetwork";
+
 export class Layer {
 	weight: number[][] = [];
 	biases: number[] = [];
-	constructor(inputCount: number, outputCount: number) {
+	activationFunction: ActivationFunction;
+	constructor(inputCount: number, outputCount: number, activationFunction: ActivationFunction) {
 		// Setup weight
 		this.weight = new Array<number[]>(inputCount);
 		for (let i = 0; i < inputCount; i++) {
@@ -10,6 +13,7 @@ export class Layer {
 
 		// Setup Biases
 		this.biases = new Array<number>(outputCount).fill(0);
+		this.activationFunction = activationFunction
 	}
 
 	CalculateOutput(inputValues: number[]) {
@@ -29,9 +33,20 @@ export class Layer {
 				nodeValue += inputValue * this.weight[inputIndex][outputIndex];
 			}
 
-			result[outputIndex] = nodeValue;
+			result[outputIndex] = this.ActivateOutput(nodeValue);
 		}
 
 		return result;
+	}
+
+	ActivateOutput(output: number) {
+		switch (this.activationFunction) {
+			case "BinaryStep":
+				return (output < 0) ? 0 : 1
+			case "Sigmoid":
+				return 1 / (1 + Math.exp(-output))
+			case "ReLU":
+				return (Math.exp(output) - Math.exp(-output)) / (Math.exp(output) + Math.exp(-output))
+		}
 	}
 }
