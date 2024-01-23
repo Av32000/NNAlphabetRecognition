@@ -17,6 +17,33 @@ export class NeuralNetwork {
 		}
 	}
 
+	Learn(dataset: Dataset, learnRate: number) {
+		const h = 0.0001;
+		const originalCost = this.DatasetCost(dataset);
+
+		this.layers.forEach(layer => {
+			for (let nodeInput = 0; nodeInput < layer.inputCount; nodeInput++) {
+				for (let nodeOutput = 0; nodeOutput < layer.outputCount; nodeOutput++) {
+					layer.weight[nodeInput][nodeOutput] += h;
+					const deltaCost = this.DatasetCost(dataset) - originalCost;
+					layer.weight[nodeInput][nodeOutput] -= h;
+					layer.costGradientWeight[nodeInput][nodeOutput] = deltaCost / h;
+				}
+			}
+
+			for (let biasIndex = 0; biasIndex < layer.biases.length; biasIndex++) {
+				layer.biases[biasIndex] += h;
+				const deltaCost = this.DatasetCost(dataset) - originalCost;
+				layer.biases[biasIndex] -= h;
+				layer.costGradientBiases[biasIndex] = deltaCost / h;
+			}
+		});
+
+		this.layers.forEach(layer => {
+			layer.ApplyGradients(learnRate);
+		});
+	}
+
 	CalculateOutputs(inputValues: number[]) {
 		let currentResult = inputValues;
 
