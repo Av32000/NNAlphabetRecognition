@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from 'fs';
 import { Dataset } from './Dataset';
 import { Layer } from './Layer';
 
@@ -5,18 +6,28 @@ export type ActivationFunction = 'BinaryStep' | 'Sigmoid' | 'ReLU';
 
 export class NeuralNetwork {
 	layers: Layer[] = [];
-	constructor(layers: number[], activationFunction: ActivationFunction) {
+
+	constructor(
+		layers?: number[],
+		activationFunction?: ActivationFunction,
+		path?: string,
+	) {
 		// Setup Layers
-		for (let i = 0; i < layers.length; i++) {
-			const element = layers[i];
-			if (i > 0) {
-				this.layers.push(
-					new Layer(layers[i - 1], layers[i], activationFunction),
-				);
+		if (layers && activationFunction) {
+			for (let i = 0; i < layers.length; i++) {
+				const element = layers[i];
+				if (i > 0) {
+					this.layers.push(
+						new Layer(layers[i - 1], layers[i], activationFunction),
+					);
+				}
 			}
+		} else if (path) {
+			this.LoadModel(path);
+		} else {
+			throw new Error('Invalid Constructor');
 		}
 	}
-
 	Learn(dataset: Dataset, learnRate: number) {
 		const h = 0.0001;
 		const originalCost = this.DatasetCost(dataset);
@@ -73,5 +84,54 @@ export class NeuralNetwork {
 		});
 
 		return result / dataset.elements.length;
+	}
+
+	ExportModel(path: string) {
+		let data: {
+			layers: {
+				weight: number[][];
+				biases: number[];
+				activation: ActivationFunction;
+				inputCount: number;
+				outputCount: number;
+			}[];
+			struct: number[];
+		} = { layers: [], struct: [] };
+
+		data.struct.push(this.layers[0].inputCount);
+
+		this.layers.forEach(layer => {
+			data.layers.push({
+				weight: layer.weight,
+				biases: layer.biases,
+				activation: layer.activationFunction,
+				inputCount: layer.inputCount,
+				outputCount: layer.outputCount,
+			});
+
+			data.struct.push(layer.outputCount);
+		});
+
+		writeFileSync(path, JSON.stringify(data));
+	}
+
+	LoadModel(path: string) {
+		const data = JSON.parse(readFileSync(path).toString());
+		if (data.layers && data.struct) {
+			data.layers.forEach(
+				(l: {
+					weight: number[][];
+					biases: number[];
+					activation: ActivationFunction;
+					inputCount: number;
+					outputCount: number;
+				}) => {
+					const newLayer = new Layer(l.inputCount, l.outputCount, l.activation);
+					newLayer.weight = l.weight;
+					newLayer.biases = l.biases;
+					this.layers.push(newLayer);
+				},
+			);
+		}
 	}
 }
