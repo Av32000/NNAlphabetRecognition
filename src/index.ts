@@ -96,4 +96,14 @@ function generateArray(letter: string): number[] {
 
 	return result;
 }
-CreateDataset();
+
+const testDataset = new Dataset('data/test.json');
+const trainDataset = new Dataset('data/train.json');
+
+const network = new NeuralNetwork([784, 100, 26], 'Sigmoid');
+console.time('Test');
+network.Learn(trainDataset, learnRate);
+console.log(network.DatasetCost(trainDataset));
+console.timeEnd('Test');
+
+// CreateDataset();

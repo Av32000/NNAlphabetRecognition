@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
-import { Dataset } from './Dataset';
+import { Dataset, DatasetElement } from './Dataset';
 import { Layer } from './Layer';
 
 export type ActivationFunction = 'BinaryStep' | 'Sigmoid' | 'ReLU';
@@ -7,19 +7,13 @@ export type ActivationFunction = 'BinaryStep' | 'Sigmoid' | 'ReLU';
 export class NeuralNetwork {
 	layers: Layer[] = [];
 
-	constructor(
-		layers?: number[],
-		activationFunction?: ActivationFunction,
-		path?: string,
-	) {
+	constructor(layers?: number[], activationFunction?: ActivationFunction, path?: string) {
 		// Setup Layers
 		if (layers && activationFunction) {
 			for (let i = 0; i < layers.length; i++) {
 				const element = layers[i];
 				if (i > 0) {
-					this.layers.push(
-						new Layer(layers[i - 1], layers[i], activationFunction),
-					);
+					this.layers.push(new Layer(layers[i - 1], layers[i], activationFunction));
 				}
 			}
 		} else if (path) {
@@ -29,29 +23,17 @@ export class NeuralNetwork {
 		}
 	}
 	Learn(dataset: Dataset, learnRate: number) {
-		const h = 0.0001;
-		const originalCost = this.DatasetCost(dataset);
-
-		this.layers.forEach(layer => {
-			for (let nodeInput = 0; nodeInput < layer.inputCount; nodeInput++) {
-				for (let nodeOutput = 0; nodeOutput < layer.outputCount; nodeOutput++) {
-					layer.weight[nodeInput][nodeOutput] += h;
-					const deltaCost = this.DatasetCost(dataset) - originalCost;
-					layer.weight[nodeInput][nodeOutput] -= h;
-					layer.costGradientWeight[nodeInput][nodeOutput] = deltaCost / h;
-				}
-			}
-
-			for (let biasIndex = 0; biasIndex < layer.biases.length; biasIndex++) {
-				layer.biases[biasIndex] += h;
-				const deltaCost = this.DatasetCost(dataset) - originalCost;
-				layer.biases[biasIndex] -= h;
-				layer.costGradientBiases[biasIndex] = deltaCost / h;
-			}
+		let i = 0
+		dataset.elements.forEach(e => {
+			console.log(i);
+			i++
+			
+			this.UpdateAllGradients(e);
 		});
 
-		this.layers.forEach(layer => {
-			layer.ApplyGradients(learnRate);
+		this.layers.forEach(l => {
+			l.ApplyGradients(learnRate / dataset.elements.length);
+			l.ClearGradients();
 		});
 	}
 
@@ -86,6 +68,23 @@ export class NeuralNetwork {
 		return result / dataset.elements.length;
 	}
 
+	UpdateAllGradients(datasetElement: DatasetElement) {
+		this.CalculateOutputs(datasetElement.inputs);
+
+		const outputLayer = this.layers[this.layers.length - 1];
+		let nodeValues = outputLayer.CalculateOutputLayerNodeValues(datasetElement.expectedOutputs);
+		outputLayer.UpdateGradients(nodeValues);
+
+		for (let layerIndex = this.layers.length - 2; layerIndex >= 0; layerIndex--) {
+			const hiddenLayer = this.layers[layerIndex];
+			nodeValues = hiddenLayer.CalculateHiddenLayerNodeValues(
+				this.layers[layerIndex + 1],
+				nodeValues,
+			);
+			hiddenLayer.UpdateGradients(nodeValues);
+		}
+	}
+
 	ExportModel(path: string) {
 		let data: {
 			layers: {
@@ -102,7 +101,7 @@ export class NeuralNetwork {
 
 		this.layers.forEach(layer => {
 			data.layers.push({
-				weight: layer.weight,
+				weight: layer.weights,
 				biases: layer.biases,
 				activation: layer.activationFunction,
 				inputCount: layer.inputCount,
@@ -127,7 +126,7 @@ export class NeuralNetwork {
 					outputCount: number;
 				}) => {
 					const newLayer = new Layer(l.inputCount, l.outputCount, l.activation);
-					newLayer.weight = l.weight;
+					newLayer.weights = l.weight;
 					newLayer.biases = l.biases;
 					this.layers.push(newLayer);
 				},
