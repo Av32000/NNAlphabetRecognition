@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { Dataset, DatasetElement } from './Dataset';
 import { Layer } from './Layer';
 
-export type ActivationFunction = 'BinaryStep' | 'Sigmoid' | 'ReLU';
+export type ActivationFunction = 'BinaryStep' | 'Sigmoid' | 'ReLU' | 'HyperbolicTangent' | 'Signum';
 
 export class NeuralNetwork {
 	layers: Layer[] = [];

@@ -3,7 +3,7 @@ import { Dataset } from './struct/Dataset';
 import { NeuralNetwork } from './struct/NeuralNetwork';
 import { PNG } from 'pngjs';
 
-const learnRate = 0.2;
+const learnRate = 0.4;
 
 async function CreateDataset() {
 	const dataset = new Dataset();
@@ -71,27 +71,25 @@ function TranslateResult(outputs: number[]) {
 const testDataset = new Dataset('data/test.json');
 const trainDataset = new Dataset('data/train.json');
 
-const network = new NeuralNetwork([784, 100, 26], 'Sigmoid');
+const network = new NeuralNetwork([784, 100, 26], 'ReLU');
+// const network = new NeuralNetwork(undefined, undefined, 'data/model3.json');
 network.SetupStats(TranslateResult);
 
 // const sliced = trainDataset.Shuffle().Slice(200);
 trainDataset.Shuffle();
 console.time('Test');
-for (let i = 0; i < 50; i++) {
+for (let i = 0; i < 100; i++) {
 	network.Learn(trainDataset, learnRate, 4);
 	console.log(network.correctPercentages[network.correctPercentages.length - 1]);
 
 	if (i % 10 == 0) {
-		network.ExportModel('data/model.json');
+		network.ExportModel('data/modelReLu.json');
 		console.log('Model Saved !');
+		console.log(i);
 	}
 }
-network.ExportModel('data/model.json');
+network.ExportModel('data/modelReLu.json');
 console.log('Model Saved !');
 
 console.timeEnd('Test');
-
-function writeFileSync(cheminFichier: string, imageBuffer: any) {
-	throw new Error('Function not implemented.');
-}
 // CreateDataset();

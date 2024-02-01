@@ -115,19 +115,27 @@ export class Layer {
 			case 'Sigmoid':
 				return 1 / (1 + Math.exp(-output));
 			case 'ReLU':
-				return (Math.exp(output) - Math.exp(-output)) / (Math.exp(output) + Math.exp(-output));
+				return output < 0 ? 0 : output;
+			case 'HyperbolicTangent':
+				return 2 / (1 + Math.exp(-2 * output)) - 1;
+			case 'Signum':
+				return output / (1 + Math.abs(output));
 		}
 	}
 
 	ActivateOutputDerivate(output: number) {
+		const activation = this.ActivateOutput(output);
 		switch (this.activationFunction) {
 			case 'BinaryStep':
-				throw new Error('Not Implemented');
+				return 0;
 			case 'Sigmoid':
-				const activation = this.ActivateOutput(output);
 				return activation * (1 - activation);
 			case 'ReLU':
-				throw new Error('Not Implemented');
+				return output < 0 ? 0 : 1;
+			case 'HyperbolicTangent':
+				return 1 - activation * activation;
+			case 'Signum':
+				return 1 / Math.pow(1 + Math.abs(output), 2);
 		}
 	}
 
