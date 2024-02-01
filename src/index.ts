@@ -1,42 +1,9 @@
-import {
-	close,
-	createReadStream,
-	createWriteStream,
-	readFileSync,
-	readdirSync,
-} from 'fs';
+import { createReadStream, readdirSync } from 'fs';
 import { Dataset } from './struct/Dataset';
 import { NeuralNetwork } from './struct/NeuralNetwork';
+import { PNG } from 'pngjs';
 
 const learnRate = 0.2;
-
-// const network = new NeuralNetwork([2, 5, 7, 2], 'Sigmoid');
-
-// const dataset = new Dataset();
-// for (let i = 0; i < 100; i++) {
-// 	const x = Math.random();
-// 	const y = Math.random();
-
-// 	const expectedOutputs = x / y > 0.5 ? [0, 1] : [1, 0];
-
-// 	dataset.AddElement([x, y], expectedOutputs);
-// }
-
-// for (let i = 0; i < 1000; i++) {
-// 	network.Learn(dataset, learnRate);
-// }
-
-// console.log(network.DatasetCost(dataset));
-
-// network.ExportModel('model.json');
-// dataset.ExportDataset('data.json');
-
-// const network = new NeuralNetwork(undefined, undefined, 'model.json');
-// network.ExportModel('model2.json');
-// const dataset = new Dataset('data.json');
-// dataset.ExportDataset('data2.json');
-
-import { PNG } from 'pngjs';
 
 async function CreateDataset() {
 	const dataset = new Dataset();
@@ -59,7 +26,7 @@ async function CreateDataset() {
 					const expected = generateArray(f[0]);
 					for (let y = 0; y < this.height; y++) {
 						for (let x = 0; x < this.width; x++) {
-							const idx = (this.width * y + x) << 2; // Décalage pour accéder aux valeurs RGBA
+							const idx = (this.width * y + x) << 2;
 							const r = this.data[idx];
 							const g = this.data[idx + 1];
 							const b = this.data[idx + 2];
@@ -69,8 +36,6 @@ async function CreateDataset() {
 					}
 
 					dataset.AddElement(inputs, expected);
-
-					// Fermer le flux de lecture après avoir traité tous les pixels
 					stream.end();
 					i++;
 					resolve(0);
@@ -82,28 +47,51 @@ async function CreateDataset() {
 
 function generateArray(letter: string): number[] {
 	const result: number[] = Array(26).fill(0);
-
-	// Vérifier si la lettre est une lettre majuscule
 	const upperCaseLetter = letter.toUpperCase();
-
-	// Obtenir la position de la lettre dans l'alphabet (A=0, B=1, ..., Z=25)
 	const position = upperCaseLetter.charCodeAt(0) - 'A'.charCodeAt(0);
-
-	// Assigner la position dans le tableau en ajoutant 1
 	if (position >= 0 && position < 36) {
-		result[position] = 1; // Commence par 1 pour la lettre A
+		result[position] = 1;
 	}
 
 	return result;
+}
+
+function TranslateResult(outputs: number[]) {
+	let maxIndex = 0;
+
+	for (let i = 0; i < outputs.length; i++) {
+		if (outputs[i] > outputs[maxIndex]) {
+			maxIndex = i;
+		}
+	}
+
+	return String.fromCharCode(65 + maxIndex);
 }
 
 const testDataset = new Dataset('data/test.json');
 const trainDataset = new Dataset('data/train.json');
 
 const network = new NeuralNetwork([784, 100, 26], 'Sigmoid');
+network.SetupStats(TranslateResult);
+
+// const sliced = trainDataset.Shuffle().Slice(200);
+trainDataset.Shuffle();
 console.time('Test');
-network.Learn(trainDataset, learnRate);
-console.log(network.DatasetCost(trainDataset));
+for (let i = 0; i < 50; i++) {
+	network.Learn(trainDataset, learnRate, 4);
+	console.log(network.correctPercentages[network.correctPercentages.length - 1]);
+
+	if (i % 10 == 0) {
+		network.ExportModel('data/model.json');
+		console.log('Model Saved !');
+	}
+}
+network.ExportModel('data/model.json');
+console.log('Model Saved !');
+
 console.timeEnd('Test');
 
+function writeFileSync(cheminFichier: string, imageBuffer: any) {
+	throw new Error('Function not implemented.');
+}
 // CreateDataset();

@@ -7,11 +7,16 @@ export type ActivationFunction = 'BinaryStep' | 'Sigmoid' | 'ReLU';
 export class NeuralNetwork {
 	layers: Layer[] = [];
 
+	// Stats
+	saveStats = false;
+	translateResult?: (outputs: number[]) => any;
+	correctPercentages: number[] = [];
+	currentCorrectCount = 0;
+
 	constructor(layers?: number[], activationFunction?: ActivationFunction, path?: string) {
 		// Setup Layers
 		if (layers && activationFunction) {
 			for (let i = 0; i < layers.length; i++) {
-				const element = layers[i];
 				if (i > 0) {
 					this.layers.push(new Layer(layers[i - 1], layers[i], activationFunction));
 				}
@@ -22,14 +27,17 @@ export class NeuralNetwork {
 			throw new Error('Invalid Constructor');
 		}
 	}
-	Learn(dataset: Dataset, learnRate: number) {
-		let i = 0
+
+	Learn(dataset: Dataset, learnRate: number, perturbationsPercentage?: number) {
 		dataset.elements.forEach(e => {
-			console.log(i);
-			i++
-			
-			this.UpdateAllGradients(e);
+			this.UpdateAllGradients(dataset.AddPertubations(e, perturbationsPercentage));
 		});
+
+		// Stats
+		if (this.saveStats) {
+			this.correctPercentages.push((this.currentCorrectCount * 100) / dataset.elements.length);
+			this.currentCorrectCount = 0;
+		}
 
 		this.layers.forEach(l => {
 			l.ApplyGradients(learnRate / dataset.elements.length);
@@ -61,6 +69,7 @@ export class NeuralNetwork {
 
 	DatasetCost(dataset: Dataset) {
 		let result = 0;
+
 		dataset.elements.forEach(e => {
 			result += this.Cost(e.inputs, e.expectedOutputs);
 		});
@@ -69,7 +78,15 @@ export class NeuralNetwork {
 	}
 
 	UpdateAllGradients(datasetElement: DatasetElement) {
-		this.CalculateOutputs(datasetElement.inputs);
+		const result = this.CalculateOutputs(datasetElement.inputs);
+
+		// Stats
+		if (this.saveStats && this.translateResult != null) {
+			const isCorrect =
+				this.translateResult(result) == this.translateResult(datasetElement.expectedOutputs);
+
+			if (isCorrect) this.currentCorrectCount += 1;
+		}
 
 		const outputLayer = this.layers[this.layers.length - 1];
 		let nodeValues = outputLayer.CalculateOutputLayerNodeValues(datasetElement.expectedOutputs);
@@ -132,5 +149,19 @@ export class NeuralNetwork {
 				},
 			);
 		}
+	}
+
+	// Stats
+	SetupStats(translateResult: (outputs: number[]) => any) {
+		this.ClearStats();
+		this.saveStats = true;
+		this.translateResult = translateResult;
+	}
+
+	ClearStats() {
+		this.saveStats = false;
+		this.translateResult = undefined;
+		this.correctPercentages = [];
+		this.currentCorrectCount = 0;
 	}
 }

@@ -165,8 +165,12 @@ export class Layer {
 	}
 
 	ClearGradients() {
-		this.costGradientBiases = [];
-		this.costGradientWeight = [];
+		this.costGradientBiases = new Array<number>(this.outputCount).fill(0);
+
+		this.costGradientWeight = new Array<number[]>(this.inputCount);
+		for (let i = 0; i < this.inputCount; i++) {
+			this.costGradientWeight[i] = new Array<number>(this.outputCount).fill(0);
+		}
 
 		this.weightedInputs = [];
 		this.activations = [];
