@@ -93,46 +93,49 @@ function TranslateResult(outputs: number[]) {
 	return String.fromCharCode(65 + maxIndex);
 }
 
-const testDataset = new Dataset('data/test.json');
-const trainDataset = new Dataset('data/train.json');
+async function TrainNetwork(
+	trainPath: string,
+	testPath: string,
+	network: NeuralNetwork,
+	resultPath: string,
+) {
+	const testDataset = new Dataset(testPath);
+	const trainDataset = new Dataset(trainPath);
 
-// const network = new NeuralNetwork([784, 100, 26], 'ReLU');
-const network = new NeuralNetwork(undefined, undefined, 'data/model.json');
-network.SetupStats(TranslateResult);
+	trainDataset.Shuffle();
+	console.time('Train');
+	for (let i = 0; i < 200; i++) {
+		network.Learn(trainDataset, learnRate, 4);
+		console.log(network.correctPercentages[network.correctPercentages.length - 1]);
 
-// console.log(network.TestDataset(trainDataset, TranslateResult));
-// console.log(network.TestDataset(testDataset, TranslateResult));
+		if (i % 10 == 0) {
+			network.ExportModel(resultPath);
+			console.log('Model Saved !');
+			console.log(i);
+		}
+	}
+	network.ExportModel(resultPath);
+	console.log('Model Saved !');
 
-parseImage('data/A.png').then(inputs => {
-	const outputs = network.CalculateOutputs(inputs);
-	const finalArray = outputs.map((nombre, index) => ({
-		letter: String.fromCharCode(65 + index),
-		value: nombre,
-		percentage: (nombre / outputs.reduce((acc, nombre) => acc + nombre, 0)) * 100,
-	}));
+	console.timeEnd('Train');
 
-	finalArray.sort((a, b) => b.value - a.value);
+	console.log('Train : ' + network.TestDataset(trainDataset, TranslateResult));
+	console.log('Test : ' + network.TestDataset(testDataset, TranslateResult));
+}
 
-	finalArray.forEach(element => {
-		console.log(`${element.letter} => ${element.percentage.toFixed(2)}%`);
+async function RunOnImage(path: string, network: NeuralNetwork) {
+	parseImage(path).then(inputs => {
+		const outputs = network.CalculateOutputs(inputs);
+		const finalArray = outputs.map((nombre, index) => ({
+			letter: String.fromCharCode(65 + index),
+			value: nombre,
+			percentage: (nombre / outputs.reduce((acc, nombre) => acc + nombre, 0)) * 100,
+		}));
+
+		finalArray.sort((a, b) => b.value - a.value);
+
+		finalArray.forEach(element => {
+			console.log(`${element.letter} => ${element.percentage.toFixed(2)}%`);
+		});
 	});
-});
-
-// const sliced = trainDataset.Shuffle().Slice(200);
-// trainDataset.Shuffle();
-// console.time('Test');
-// for (let i = 0; i < 200; i++) {
-// 	network.Learn(trainDataset, learnRate, 4);
-// 	console.log(network.correctPercentages[network.correctPercentages.length - 1]);
-
-// 	if (i % 10 == 0) {
-// 		network.ExportModel('data/model8.json');
-// 		console.log('Model Saved !');
-// 		console.log(i);
-// 	}
-// }
-// network.ExportModel('data/model8.json');
-// console.log('Model Saved !');
-
-// console.timeEnd('Test');
-// CreateDataset();
+}
