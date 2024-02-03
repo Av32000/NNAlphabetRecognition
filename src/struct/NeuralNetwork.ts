@@ -164,4 +164,15 @@ export class NeuralNetwork {
 		this.correctPercentages = [];
 		this.currentCorrectCount = 0;
 	}
+
+	TestDataset(dataset: Dataset, translateResult: (outputs: number[]) => any) {
+		let correct = 0;
+
+		dataset.elements.forEach(e => {
+			if (translateResult(this.CalculateOutputs(e.inputs)) == translateResult(e.expectedOutputs))
+				correct++;
+		});
+
+		return (correct * 100) / dataset.elements.length;
+	}
 }
