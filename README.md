@@ -8,6 +8,11 @@ Inspired by a video by [Sebastian Lague](https://www.youtube.com/@SebastianLague
 
 1. Clone Repo
 2. Install Dependencies (`npm install`)
+3. Create new folder : `data`
+4. Put dataset files with this scheme :
+   - `data/train/[letter]\_[index].png`
+   - `data/test/[letter]\_[index].png`
+5. Run `CreateDatase()` to create `dataset.json`
 
 ## Training Test
 

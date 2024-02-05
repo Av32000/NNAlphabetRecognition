@@ -1,21 +1,19 @@
 import { createReadStream, readdirSync } from 'fs';
+import { PNG } from 'pngjs';
 import { Dataset } from './struct/Dataset';
 import { NeuralNetwork } from './struct/NeuralNetwork';
-import { PNG } from 'pngjs';
 
 const learnRate = 0.24;
 
-async function CreateDataset() {
+async function CreateDataset(inputPath: string, resultPath: string) {
 	const dataset = new Dataset();
 
-	const files = readdirSync('data/test');
-	console.log(files);
+	const files = readdirSync(inputPath);
 	let i = 0;
 	for (const f of files) {
 		console.log(i);
-
 		await new Promise(resolve => {
-			const stream = createReadStream('data/test/' + f)
+			const stream = createReadStream(inputPath + '/' + f)
 				.pipe(
 					new PNG({
 						filterType: 4,
@@ -42,7 +40,7 @@ async function CreateDataset() {
 				});
 		});
 	}
-	dataset.ExportDataset('test.json');
+	dataset.ExportDataset(resultPath);
 }
 
 function parseImage(path: string): Promise<number[]> {
@@ -106,7 +104,9 @@ async function TrainNetwork(
 	console.time('Train');
 	for (let i = 0; i < 200; i++) {
 		network.Learn(trainDataset, learnRate, 4);
-		console.log(network.correctPercentages[network.correctPercentages.length - 1]);
+		console.log(
+			network.correctPercentages[network.correctPercentages.length - 1],
+		);
 
 		if (i % 10 == 0) {
 			network.ExportModel(resultPath);
@@ -129,7 +129,8 @@ async function RunOnImage(path: string, network: NeuralNetwork) {
 		const finalArray = outputs.map((nombre, index) => ({
 			letter: String.fromCharCode(65 + index),
 			value: nombre,
-			percentage: (nombre / outputs.reduce((acc, nombre) => acc + nombre, 0)) * 100,
+			percentage:
+				(nombre / outputs.reduce((acc, nombre) => acc + nombre, 0)) * 100,
 		}));
 
 		finalArray.sort((a, b) => b.value - a.value);
