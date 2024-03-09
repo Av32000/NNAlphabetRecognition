@@ -57,7 +57,8 @@ export class Dataset {
 	}
 
 	Slice(newDatasetCount: number, random = false) {
-		if (this.elements.length < newDatasetCount) throw new Error('Invalid Length');
+		if (this.elements.length < newDatasetCount)
+			throw new Error('Invalid Length');
 
 		const newDataset = new Dataset();
 		const alreadyUsedIndex: number[] = [];
@@ -80,5 +81,17 @@ export class Dataset {
 		}
 
 		return newDataset;
+	}
+
+	getElementsFromBatchSize(batchSize: number) {
+		if (batchSize < 0 || batchSize > 100) {
+			throw new Error('Invalid Batch Size');
+		}
+
+		if (batchSize == 100) return this.elements;
+
+		const elementsCount = Math.round((batchSize * this.elements.length) / 100);
+
+		return this.Shuffle().Slice(elementsCount, false).elements;
 	}
 }

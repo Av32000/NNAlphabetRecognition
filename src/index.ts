@@ -3,7 +3,10 @@ import { PNG } from 'pngjs';
 import { Dataset } from './struct/Dataset';
 import { NeuralNetwork } from './struct/NeuralNetwork';
 
+// Settings
 const learnRate = 0.24;
+const perturbationsPercentage = 4;
+const batchSize = 75;
 
 async function CreateDataset(inputPath: string, resultPath: string) {
 	const dataset = new Dataset();
@@ -96,22 +99,30 @@ async function TrainNetwork(
 	testPath: string,
 	network: NeuralNetwork,
 	resultPath: string,
+	iterationsCount: number,
 ) {
+	network.SetupStats(TranslateResult);
 	const testDataset = new Dataset(testPath);
 	const trainDataset = new Dataset(trainPath);
 
 	trainDataset.Shuffle();
+
+	console.log(
+		`Training Settings :\n- Iterations Count : ${iterationsCount}\n- Learn Rate : ${learnRate}\n- Perturbations Percentage : ${perturbationsPercentage}\n- Batch Size : ${batchSize}`,
+	);
+
 	console.time('Train');
-	for (let i = 0; i < 200; i++) {
-		network.Learn(trainDataset, learnRate, 4);
+	for (let i = 0; i < iterationsCount; i++) {
+		network.Learn(trainDataset, learnRate, perturbationsPercentage, batchSize);
 		console.log(
-			network.correctPercentages[network.correctPercentages.length - 1],
+			`[Iteration ${i + 1}/${iterationsCount}] ${
+				network.correctPercentages[network.correctPercentages.length - 1]
+			}%`,
 		);
 
-		if (i % 10 == 0) {
+		if (i % 10 == 0 && i != 0) {
 			network.ExportModel(resultPath);
 			console.log('Model Saved !');
-			console.log(i);
 		}
 	}
 	network.ExportModel(resultPath);

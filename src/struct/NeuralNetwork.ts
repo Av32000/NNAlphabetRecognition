@@ -2,7 +2,12 @@ import { readFileSync, writeFileSync } from 'fs';
 import { Dataset, DatasetElement } from './Dataset';
 import { Layer } from './Layer';
 
-export type ActivationFunction = 'BinaryStep' | 'Sigmoid' | 'ReLU' | 'HyperbolicTangent' | 'Signum';
+export type ActivationFunction =
+	| 'BinaryStep'
+	| 'Sigmoid'
+	| 'ReLU'
+	| 'HyperbolicTangent'
+	| 'Signum';
 
 export class NeuralNetwork {
 	layers: Layer[] = [];
@@ -13,12 +18,18 @@ export class NeuralNetwork {
 	correctPercentages: number[] = [];
 	currentCorrectCount = 0;
 
-	constructor(layers?: number[], activationFunction?: ActivationFunction, path?: string) {
+	constructor(
+		layers?: number[],
+		activationFunction?: ActivationFunction,
+		path?: string,
+	) {
 		// Setup Layers
 		if (layers && activationFunction) {
 			for (let i = 0; i < layers.length; i++) {
 				if (i > 0) {
-					this.layers.push(new Layer(layers[i - 1], layers[i], activationFunction));
+					this.layers.push(
+						new Layer(layers[i - 1], layers[i], activationFunction),
+					);
 				}
 			}
 		} else if (path) {
@@ -28,19 +39,30 @@ export class NeuralNetwork {
 		}
 	}
 
-	Learn(dataset: Dataset, learnRate: number, perturbationsPercentage?: number) {
-		dataset.elements.forEach(e => {
-			this.UpdateAllGradients(dataset.AddPertubations(e, perturbationsPercentage));
+	Learn(
+		dataset: Dataset,
+		learnRate: number,
+		perturbationsPercentage?: number,
+		batchSize: number = 100,
+	) {
+		const data = dataset.getElementsFromBatchSize(batchSize);
+
+		data.forEach(e => {
+			this.UpdateAllGradients(
+				dataset.AddPertubations(e, perturbationsPercentage),
+			);
 		});
 
 		// Stats
 		if (this.saveStats) {
-			this.correctPercentages.push((this.currentCorrectCount * 100) / dataset.elements.length);
+			this.correctPercentages.push(
+				(this.currentCorrectCount * 100) / data.length,
+			);
 			this.currentCorrectCount = 0;
 		}
 
 		this.layers.forEach(l => {
-			l.ApplyGradients(learnRate / dataset.elements.length);
+			l.ApplyGradients(learnRate / data.length);
 			l.ClearGradients();
 		});
 	}
@@ -83,16 +105,23 @@ export class NeuralNetwork {
 		// Stats
 		if (this.saveStats && this.translateResult != null) {
 			const isCorrect =
-				this.translateResult(result) == this.translateResult(datasetElement.expectedOutputs);
+				this.translateResult(result) ==
+				this.translateResult(datasetElement.expectedOutputs);
 
 			if (isCorrect) this.currentCorrectCount += 1;
 		}
 
 		const outputLayer = this.layers[this.layers.length - 1];
-		let nodeValues = outputLayer.CalculateOutputLayerNodeValues(datasetElement.expectedOutputs);
+		let nodeValues = outputLayer.CalculateOutputLayerNodeValues(
+			datasetElement.expectedOutputs,
+		);
 		outputLayer.UpdateGradients(nodeValues);
 
-		for (let layerIndex = this.layers.length - 2; layerIndex >= 0; layerIndex--) {
+		for (
+			let layerIndex = this.layers.length - 2;
+			layerIndex >= 0;
+			layerIndex--
+		) {
 			const hiddenLayer = this.layers[layerIndex];
 			nodeValues = hiddenLayer.CalculateHiddenLayerNodeValues(
 				this.layers[layerIndex + 1],
@@ -169,7 +198,10 @@ export class NeuralNetwork {
 		let correct = 0;
 
 		dataset.elements.forEach(e => {
-			if (translateResult(this.CalculateOutputs(e.inputs)) == translateResult(e.expectedOutputs))
+			if (
+				translateResult(this.CalculateOutputs(e.inputs)) ==
+				translateResult(e.expectedOutputs)
+			)
 				correct++;
 		});
 
